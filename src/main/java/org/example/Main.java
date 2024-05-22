@@ -1,4 +1,5 @@
 package org.example;
+
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -8,7 +9,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import org.example.Enemy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,8 +17,9 @@ public class Main extends Application {
     public static final int WINDOW_WIDTH = 800;
     public static final int WINDOW_HEIGHT = 600;
     private static final double GRAVITY = 0.5;
-    private static final double JUMP_FORCE = -10;
+    private static final double JUMP_FORCE = -13;
     private static final double MOVE_SPEED = 5;
+    private static final double GROUND_LEVEL = 600; // Новая высота земли
 
     private boolean isLeftPressed = false;
     private boolean isRightPressed = false;
@@ -50,41 +51,34 @@ public class Main extends Application {
         backgroundView.setFitHeight(WINDOW_HEIGHT + 100);
         root.getChildren().add(backgroundView);
 
-        Image gameOverImage = new Image(getClass().getResourceAsStream("/gameover.png"));
-        ImageView gameOverImageView = new ImageView(gameOverImage);
-        gameOverImageView.setLayoutX(230);
-        gameOverImageView.setLayoutY(-20);
-        gameOverImageView.setVisible(false); // Начально изображение скрыто
-        root.getChildren().add(gameOverImageView);
-
         Image characterImage = new Image(getClass().getResourceAsStream("/character.png"));
         ImageView characterView = new ImageView(characterImage);
-        characterView.setFitWidth(50);
-        characterView.setFitHeight(70);
+        characterView.setFitWidth(60);  // Увеличение ширины персонажа
+        characterView.setFitHeight(84); // Увеличение высоты персонажа
         characterView.setLayoutX(100);
-        characterView.setLayoutY(530);
+        characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight()); // Устанавливаем начальную позицию чуть выше уровня земли
         root.getChildren().add(characterView);
 
         // Добавляем платформы
-        platforms.add(new Platform(200, 500, 100, 20));
-        platforms.add(new Platform(400, 400, 100, 20));
-        platforms.add(new Platform(600, 300, 100, 20));
+        platforms.add(new Platform(200, 450, 100, 20));
+        platforms.add(new Platform(400, 350, 100, 20));
+        platforms.add(new Platform(600, 250, 100, 20));
 
         for (ImageView platform : platforms) {
             root.getChildren().add(platform);
         }
 
         // Добавляем врагов
-        enemies.add(new Enemy(300, 470, 70, 50, -2)); // Враг движется влево
-        enemies.add(new Enemy(500, 370, 70, 50, 2)); // Враг движется вправо
+        enemies.add(new Enemy(300, 420, 70, 50, -2)); // Враг движется влево
+        enemies.add(new Enemy(500, 320, 70, 50, 2)); // Враг движется вправо
 
         for (Enemy enemy : enemies) {
             root.getChildren().add(enemy);
         }
 
         // Добавляем предметы (сундуки)
-        items.add(new Item(350, 450, 50, 50));
-        items.add(new Item(550, 350, 50, 50));
+        items.add(new Item(350, 400, 50, 50));
+        items.add(new Item(550, 300, 50, 50));
 
         for (Item item : items) {
             root.getChildren().add(item);
@@ -136,8 +130,8 @@ public class Main extends Application {
                 characterView.setLayoutY(y + velocityY);
 
                 // Ограничение, чтобы персонаж не падал ниже "земли"
-                if (characterView.getLayoutY() >= 530) {
-                    characterView.setLayoutY(530);
+                if (characterView.getLayoutY() >= GROUND_LEVEL - characterView.getFitHeight()) {
+                    characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight());
                     velocityY = 0;
                     canJump = true;
                 }
@@ -159,7 +153,7 @@ public class Main extends Application {
                         }
                     }
                 }
-                if (!onPlatform && y < 530) {
+                if (!onPlatform && y < GROUND_LEVEL - characterView.getFitHeight()) {
                     canJump = false;
                 }
 
@@ -184,7 +178,6 @@ public class Main extends Application {
                             if (health <= 0) {
                                 stop();
                                 System.out.println("Game Over!");
-                                gameOverImageView.setVisible(true);
                             }
                         }
                     }
@@ -206,6 +199,7 @@ public class Main extends Application {
     }
 
     public static void main(String[] args) {
+
         launch(args);
     }
 }
