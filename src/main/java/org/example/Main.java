@@ -10,6 +10,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class Main extends Application {
@@ -19,7 +20,7 @@ public class Main extends Application {
     private static final double GRAVITY = 0.5;
     private static final double JUMP_FORCE = -13;
     private static final double MOVE_SPEED = 5;
-    private static final double GROUND_LEVEL = 600; // Новая высота земли
+    private static final double GROUND_LEVEL = 600;
 
     private boolean isLeftPressed = false;
     private boolean isRightPressed = false;
@@ -45,7 +46,6 @@ public class Main extends Application {
 
     private AnimationTimer timer;
 
-
     private List<ImageView> platforms = new ArrayList<>();
     private List<Enemy> enemies = new ArrayList<>();
     private List<Item> items = new ArrayList<>();
@@ -63,37 +63,58 @@ public class Main extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
+        setupGame(root);
+
+        scene.setOnKeyPressed(event -> handleKeyPress(event.getCode(), true));
+        scene.setOnKeyReleased(event -> handleKeyPress(event.getCode(), false));
+
+        timer = new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                updateGame(root);
+            }
+        };
+        timer.start();
+    }
+
+    private void setupGame(Pane root) {
+        root.getChildren().clear();
 
         backgroundView.setFitWidth(WINDOW_WIDTH);
         backgroundView.setFitHeight(WINDOW_HEIGHT + 100);
         root.getChildren().add(backgroundView);
 
-
-        characterView.setFitWidth(60);  // Увеличение ширины персонажа
-        characterView.setFitHeight(84); // Увеличение высоты персонажа
+        characterView.setFitWidth(60);
+        characterView.setFitHeight(84);
         characterView.setLayoutX(100);
-        characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight()); // Устанавливаем начальную позицию чуть выше уровня земли
+        characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight());
         root.getChildren().add(characterView);
 
-
-        gameOverImageView.setFitWidth(300); // Устанавливаем ширину кнопки
-        gameOverImageView.setFitHeight(300); // Устанавливаем высоту кнопки
-        gameOverImageView.setLayoutX(250); // Устанавливаем положение по оси X
-        gameOverImageView.setLayoutY(20); // Устанавливаем положение по оси Y
-        gameOverImageView.setOnMouseClicked(event -> resetGame()); // Обработчик события для кнопки
-        gameOverImageView.setVisible(false); // Начально кнопка не видна
+        gameOverImageView.setFitWidth(300);
+        gameOverImageView.setFitHeight(300);
+        gameOverImageView.setLayoutX(250);
+        gameOverImageView.setLayoutY(20);
+        gameOverImageView.setOnMouseClicked(event -> resetGame(root));
+        gameOverImageView.setVisible(false);
         root.getChildren().add(gameOverImageView);
 
-
-        resetImageView.setFitWidth(100); // Устанавливаем ширину кнопки
-        resetImageView.setFitHeight(50); // Устанавливаем высоту кнопки
-        resetImageView.setLayoutX(350); // Устанавливаем положение по оси X
-        resetImageView.setLayoutY(250); // Устанавливаем положение по оси Y
-        resetImageView.setOnMouseClicked(event -> resetGame()); // Обработчик события для кнопки
-        resetImageView.setVisible(false); // Начально кнопка не видна
+        resetImageView.setFitWidth(100);
+        resetImageView.setFitHeight(50);
+        resetImageView.setLayoutX(350);
+        resetImageView.setLayoutY(250);
+        resetImageView.setOnMouseClicked(event -> resetGame(root));
+        resetImageView.setVisible(false);
         root.getChildren().add(resetImageView);
 
-        // Добавляем платформы
+        setupPlatforms(root);
+        setupEnemies(root);
+        setupItems(root);
+
+        root.getChildren().addAll(scoreText, healthText);
+    }
+
+    private void setupPlatforms(Pane root) {
+        platforms.clear();
         platforms.add(new Platform(200, 450, 100, 20));
         platforms.add(new Platform(400, 350, 100, 20));
         platforms.add(new Platform(600, 250, 100, 20));
@@ -101,186 +122,156 @@ public class Main extends Application {
         for (ImageView platform : platforms) {
             root.getChildren().add(platform);
         }
+    }
 
-        // Добавляем врагов
-        enemies.add(new Enemy(300, 420, 90, 70, -2)); // Враг движется влево
-        enemies.add(new Enemy(500, 320, 90, 70, 2)); // Враг движется вправо
+    private void setupEnemies(Pane root) {
+        enemies.clear();
+        enemies.add(new Enemy(300, 420, 90, 70, -2));
+        enemies.add(new Enemy(500, 320, 90, 70, 2));
 
         for (Enemy enemy : enemies) {
             root.getChildren().add(enemy);
         }
+    }
 
-        // Добавляем предметы (сундуки)
+    private void setupItems(Pane root) {
+        items.clear();
         items.add(new Item(350, 400, 50, 50));
         items.add(new Item(550, 300, 50, 50));
 
         for (Item item : items) {
             root.getChildren().add(item);
         }
-
-        // Добавляем текст для отображения очков и здоровья
-
-        root.getChildren().addAll(scoreText, healthText);
-
-        scene.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.LEFT) {
-                isLeftPressed = true;
-            } else if (event.getCode() == KeyCode.RIGHT) {
-                isRightPressed = true;
-            } else if (event.getCode() == KeyCode.UP && canJump) {
-                isUpPressed = true;
-            }
-        });
-
-        scene.setOnKeyReleased(event -> {
-            if (event.getCode() == KeyCode.LEFT) {
-                isLeftPressed = false;
-            } else if (event.getCode() == KeyCode.RIGHT) {
-                isRightPressed = false;
-            } else if (event.getCode() == KeyCode.UP) {
-                isUpPressed = false;
-            }
-        });
-
-        timer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                double x = characterView.getLayoutX();
-                double y = characterView.getLayoutY();
-
-                if (isLeftPressed) {
-                    characterView.setLayoutX(x - MOVE_SPEED);
-                }
-                if (isRightPressed) {
-                    characterView.setLayoutX(x + MOVE_SPEED);
-                }
-                if (isUpPressed && canJump) {
-                    velocityY = JUMP_FORCE;
-                    canJump = false;
-                }
-
-                velocityY += GRAVITY;
-                characterView.setLayoutY(y + velocityY);
-
-                // Ограничение, чтобы персонаж не падал ниже "земли"
-                if (characterView.getLayoutY() >= GROUND_LEVEL - characterView.getFitHeight()) {
-                    characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight());
-                    velocityY = 0;
-                    canJump = true;
-                }
-
-                // Проверка на столкновение с платформами
-                boolean onPlatform = false;
-                for (ImageView platform : platforms) {
-                    if (characterView.getBoundsInParent().intersects(platform.getBoundsInParent())) {
-                        double characterBottom = characterView.getBoundsInParent().getMaxY();
-                        double platformTop = platform.getBoundsInParent().getMinY();
-                        if (characterBottom <= platformTop + 10 && characterBottom >= platformTop - 10) {
-                            characterView.setLayoutY(platform.getLayoutY() - characterView.getFitHeight());
-                            // Персонаж касается платформы
-                            double newY = platform.getLayoutY() - characterView.getFitHeight() + 5; // Новая позиция персонажа
-                            characterView.setLayoutY(newY);
-                            velocityY = 0;
-                            canJump = true;
-                            onPlatform = true;
-                        }
-                    }
-                }
-                if (!onPlatform && y < GROUND_LEVEL - characterView.getFitHeight()) {
-                    canJump = false;
-                }
-
-                // Движение врагов
-                for (Enemy enemy : enemies) {
-                    enemy.update();
-                }
-
-                // Проверка на столкновение с врагами
-                for (Enemy enemy : enemies) {
-                    if (characterView.getBoundsInParent().intersects(enemy.getBoundsInParent())) {
-                        if (y + characterView.getFitHeight() <= enemy.getY() + 10 &&
-                                y + characterView.getFitHeight() >= enemy.getY() - 10) {
-                            root.getChildren().remove(enemy);
-                            enemies.remove(enemy);
-                            score += 10;
-                            scoreText.setText("Score: " + score);
-                            break;
-                        } else {
-                            health -= 1;
-                            healthText.setText("Health: " + health);
-                            if (health <= 0) {
-                                gameOverImageView.setVisible(true);
-                                resetImageView.setVisible(true);
-                                stop();
-                                System.out.println("Game Over!");
-
-                            }
-                        }
-                    }
-                }
-
-                // Проверка на сбор предметов
-                for (Item item : items) {
-                    if (characterView.getBoundsInParent().intersects(item.getBoundsInParent())) {
-                        root.getChildren().remove(item);
-                        items.remove(item);
-                        score += 5;
-                        scoreText.setText("Score: " + score);
-                        break;
-                    }
-                }
-            }
-        };
-        timer.start();
     }
 
-    private void resetGame() {
-        // Возвращаем персонажа на начальную позицию
+    private void handleKeyPress(KeyCode code, boolean isPressed) {
+        switch (code) {
+            case LEFT -> isLeftPressed = isPressed;
+            case RIGHT -> isRightPressed = isPressed;
+            case UP -> isUpPressed = isPressed;
+        }
+    }
+
+    private void updateGame(Pane root) {
+        double x = characterView.getLayoutX();
+        double y = characterView.getLayoutY();
+
+        if (isLeftPressed) {
+            characterView.setLayoutX(x - MOVE_SPEED);
+        }
+        if (isRightPressed) {
+            characterView.setLayoutX(x + MOVE_SPEED);
+        }
+        if (isUpPressed && canJump) {
+            velocityY = JUMP_FORCE;
+            canJump = false;
+        }
+
+        velocityY += GRAVITY;
+        characterView.setLayoutY(y + velocityY);
+
+        if (characterView.getLayoutY() >= GROUND_LEVEL - characterView.getFitHeight()) {
+            characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight());
+            velocityY = 0;
+            canJump = true;
+        }
+
+        boolean onPlatform = false;
+        for (ImageView platform : platforms) {
+            if (characterView.getBoundsInParent().intersects(platform.getBoundsInParent())) {
+                double characterBottom = characterView.getBoundsInParent().getMaxY();
+                double platformTop = platform.getBoundsInParent().getMinY();
+                if (characterBottom <= platformTop + 10 && characterBottom >= platformTop - 10) {
+                    characterView.setLayoutY(platform.getLayoutY() - characterView.getFitHeight() + 5);
+                    velocityY = 0;
+                    canJump = true;
+                    onPlatform = true;
+                }
+            }
+        }
+        if (!onPlatform && y < GROUND_LEVEL - characterView.getFitHeight()) {
+            canJump = false;
+        }
+
+        updateEnemies(root);
+        checkCollisions(root);
+    }
+
+    private void updateEnemies(Pane root) {
+        for (Enemy enemy : enemies) {
+            enemy.update();
+        }
+    }
+
+    private void checkCollisions(Pane root) {
+        checkEnemyCollisions(root);
+        checkItemCollisions(root);
+    }
+
+    private void checkEnemyCollisions(Pane root) {
+        Iterator<Enemy> enemyIterator = enemies.iterator();
+        while (enemyIterator.hasNext()) {
+            Enemy enemy = enemyIterator.next();
+            if (characterView.getBoundsInParent().intersects(enemy.getBoundsInParent())) {
+                double y = characterView.getLayoutY();
+                if (y + characterView.getFitHeight() <= enemy.getY() + 10 &&
+                        y + characterView.getFitHeight() >= enemy.getY() - 10) {
+                    root.getChildren().remove(enemy);
+                    enemyIterator.remove();
+                    score += 10;
+                    scoreText.setText("Score: " + score);
+                } else {
+                    health -= 1;
+                    healthText.setText("Health: " + health);
+                    if (health <= 0) {
+                        gameOverImageView.setVisible(true);
+                        resetImageView.setVisible(true);
+                        timer.stop();
+                        System.out.println("Game Over!");
+                    }
+                }
+            }
+        }
+    }
+
+    private void checkItemCollisions(Pane root) {
+        Iterator<Item> itemIterator = items.iterator();
+        while (itemIterator.hasNext()) {
+            Item item = itemIterator.next();
+            if (characterView.getBoundsInParent().intersects(item.getBoundsInParent())) {
+                root.getChildren().remove(item);
+                itemIterator.remove();
+                score += 5;
+                scoreText.setText("Score: " + score);
+            }
+        }
+    }
+
+    private void resetGame(Pane root) {
+        root.getChildren().removeAll(platforms);
+        root.getChildren().removeAll(enemies);
+        root.getChildren().removeAll(items);
+
         characterView.setLayoutX(100);
-        characterView.setLayoutY(530);
+        characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight());
 
-        // Инициализируем списки заново
-        platforms = new ArrayList<>();
-        enemies = new ArrayList<>();
-        items = new ArrayList<>();
+        setupPlatforms(root);
+        setupEnemies(root);
+        setupItems(root);
 
-        // Добавляем платформы
-        platforms.add(new Platform(200, 450, 100, 20));
-        platforms.add(new Platform(400, 350, 100, 20));
-        platforms.add(new Platform(600, 250, 100, 20));
-
-
-        // Добавляем врагов
-        enemies.add(new Enemy(300, 420, 90, 70, -2)); // Враг движется влево
-        enemies.add(new Enemy(500, 320, 90, 70, 2)); // Враг движется вправо
-
-
-        // Добавляем предметы (сундуки)
-        items.add(new Item(350, 400, 50, 50));
-        items.add(new Item(550, 300, 50, 50));
-
-
-
-        // Сбрасываем значения переменных, связанных с игровым процессом
         score = 0;
         health = 3;
 
-        // Обновляем отображение счета и здоровья
         scoreText.setText("Score: " + score);
         healthText.setText("Health: " + health);
 
-        // Скрываем изображение "Game Over" и кнопку "Reset"
         gameOverImageView.setVisible(false);
         resetImageView.setVisible(false);
 
-        // Запускаем игру заново
         timer.start();
     }
 
-
-
     public static void main(String[] args) {
-
         launch(args);
     }
 }
