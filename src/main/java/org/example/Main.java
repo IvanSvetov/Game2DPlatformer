@@ -59,6 +59,26 @@ public class Main extends Application {
         characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight()); // Устанавливаем начальную позицию чуть выше уровня земли
         root.getChildren().add(characterView);
 
+        Image gameOverImage = new Image(getClass().getResourceAsStream("/gameover.png"));
+        ImageView gameOverImageView = new ImageView(gameOverImage);
+        gameOverImageView.setFitWidth(300); // Устанавливаем ширину кнопки
+        gameOverImageView.setFitHeight(300); // Устанавливаем высоту кнопки
+        gameOverImageView.setLayoutX(250); // Устанавливаем положение по оси X
+        gameOverImageView.setLayoutY(20); // Устанавливаем положение по оси Y
+        gameOverImageView.setOnMouseClicked(event -> resetGame()); // Обработчик события для кнопки
+        gameOverImageView.setVisible(false); // Начально кнопка не видна
+        root.getChildren().add(gameOverImageView);
+
+        Image resetImage = new Image(getClass().getResourceAsStream("/reset.png"));
+        ImageView resetImageView = new ImageView(resetImage);
+        resetImageView.setFitWidth(50); // Устанавливаем ширину кнопки
+        resetImageView.setFitHeight(50); // Устанавливаем высоту кнопки
+        resetImageView.setLayoutX(380); // Устанавливаем положение по оси X
+        resetImageView.setLayoutY(250); // Устанавливаем положение по оси Y
+        resetImageView.setOnMouseClicked(event -> resetGame()); // Обработчик события для кнопки
+        resetImageView.setVisible(false); // Начально кнопка не видна
+        root.getChildren().add(resetImageView);
+
         // Добавляем платформы
         platforms.add(new Platform(200, 450, 100, 20));
         platforms.add(new Platform(400, 350, 100, 20));
@@ -69,8 +89,8 @@ public class Main extends Application {
         }
 
         // Добавляем врагов
-        enemies.add(new Enemy(300, 420, 70, 50, -2)); // Враг движется влево
-        enemies.add(new Enemy(500, 320, 70, 50, 2)); // Враг движется вправо
+        enemies.add(new Enemy(300, 420, 90, 70, -2)); // Враг движется влево
+        enemies.add(new Enemy(500, 320, 90, 70, 2)); // Враг движется вправо
 
         for (Enemy enemy : enemies) {
             root.getChildren().add(enemy);
@@ -176,8 +196,11 @@ public class Main extends Application {
                             health -= 1;
                             healthText.setText("Health: " + health);
                             if (health <= 0) {
+                                gameOverImageView.setVisible(true);
+                                resetImageView.setVisible(true);
                                 stop();
                                 System.out.println("Game Over!");
+
                             }
                         }
                     }
@@ -196,6 +219,9 @@ public class Main extends Application {
             }
         };
         timer.start();
+    }
+
+    private void resetGame() {
     }
 
     public static void main(String[] args) {
