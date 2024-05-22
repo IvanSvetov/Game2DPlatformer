@@ -27,7 +27,7 @@ public class Main extends Application {
     private double velocityY = 0;
     private boolean canJump = true;
 
-    private List<Platform> platforms = new ArrayList<>();
+    private List<ImageView> platforms = new ArrayList<>();
     private List<Enemy> enemies = new ArrayList<>();
     private List<Item> items = new ArrayList<>();
 
@@ -47,8 +47,10 @@ public class Main extends Application {
         Image backgroundImage = new Image(getClass().getResourceAsStream("/background.png"));
         ImageView backgroundView = new ImageView(backgroundImage);
         backgroundView.setFitWidth(WINDOW_WIDTH);
-        backgroundView.setFitHeight(WINDOW_HEIGHT);
+        backgroundView.setFitHeight(WINDOW_HEIGHT + 100);
         root.getChildren().add(backgroundView);
+
+
 
         Image characterImage = new Image(getClass().getResourceAsStream("/character.png"));
         ImageView characterView = new ImageView(characterImage);
@@ -63,7 +65,7 @@ public class Main extends Application {
         platforms.add(new Platform(400, 400, 100, 20));
         platforms.add(new Platform(600, 300, 100, 20));
 
-        for (Platform platform : platforms) {
+        for (ImageView platform : platforms) {
             root.getChildren().add(platform);
         }
 
@@ -137,11 +139,15 @@ public class Main extends Application {
 
                 // Проверка на столкновение с платформами
                 boolean onPlatform = false;
-                for (Platform platform : platforms) {
+                for (ImageView platform : platforms) {
                     if (characterView.getBoundsInParent().intersects(platform.getBoundsInParent())) {
-                        if (y + characterView.getFitHeight() <= platform.getY() + 10 &&
-                                y + characterView.getFitHeight() >= platform.getY() - 10) {
-                            characterView.setLayoutY(platform.getY() - characterView.getFitHeight());
+                        double characterBottom = characterView.getBoundsInParent().getMaxY();
+                        double platformTop = platform.getBoundsInParent().getMinY();
+                        if (characterBottom <= platformTop + 10 && characterBottom >= platformTop - 10) {
+                            characterView.setLayoutY(platform.getLayoutY() - characterView.getFitHeight());
+                            // Персонаж касается платформы
+                            double newY = platform.getLayoutY() - characterView.getFitHeight() + 5; // Новая позиция персонажа
+                            characterView.setLayoutY(newY);
                             velocityY = 0;
                             canJump = true;
                             onPlatform = true;
