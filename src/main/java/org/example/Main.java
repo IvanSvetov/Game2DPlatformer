@@ -28,6 +28,24 @@ public class Main extends Application {
     private double velocityY = 0;
     private boolean canJump = true;
 
+    Image backgroundImage = new Image(getClass().getResourceAsStream("/background.png"));
+    ImageView backgroundView = new ImageView(backgroundImage);
+
+    Image characterImage = new Image(getClass().getResourceAsStream("/character.png"));
+    ImageView characterView = new ImageView(characterImage);
+
+    Image gameOverImage = new Image(getClass().getResourceAsStream("/gameover.png"));
+    ImageView gameOverImageView = new ImageView(gameOverImage);
+
+    Image resetImage = new Image(getClass().getResourceAsStream("/reset.png"));
+    ImageView resetImageView = new ImageView(resetImage);
+
+    Text scoreText = new Text(10, 20, "Score: 0");
+    Text healthText = new Text(10, 40, "Health: 3");
+
+    private AnimationTimer timer;
+
+
     private List<ImageView> platforms = new ArrayList<>();
     private List<Enemy> enemies = new ArrayList<>();
     private List<Item> items = new ArrayList<>();
@@ -45,22 +63,19 @@ public class Main extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        Image backgroundImage = new Image(getClass().getResourceAsStream("/background.png"));
-        ImageView backgroundView = new ImageView(backgroundImage);
+
         backgroundView.setFitWidth(WINDOW_WIDTH);
         backgroundView.setFitHeight(WINDOW_HEIGHT + 100);
         root.getChildren().add(backgroundView);
 
-        Image characterImage = new Image(getClass().getResourceAsStream("/character.png"));
-        ImageView characterView = new ImageView(characterImage);
+
         characterView.setFitWidth(60);  // Увеличение ширины персонажа
         characterView.setFitHeight(84); // Увеличение высоты персонажа
         characterView.setLayoutX(100);
         characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight()); // Устанавливаем начальную позицию чуть выше уровня земли
         root.getChildren().add(characterView);
 
-        Image gameOverImage = new Image(getClass().getResourceAsStream("/gameover.png"));
-        ImageView gameOverImageView = new ImageView(gameOverImage);
+
         gameOverImageView.setFitWidth(300); // Устанавливаем ширину кнопки
         gameOverImageView.setFitHeight(300); // Устанавливаем высоту кнопки
         gameOverImageView.setLayoutX(250); // Устанавливаем положение по оси X
@@ -69,11 +84,10 @@ public class Main extends Application {
         gameOverImageView.setVisible(false); // Начально кнопка не видна
         root.getChildren().add(gameOverImageView);
 
-        Image resetImage = new Image(getClass().getResourceAsStream("/reset.png"));
-        ImageView resetImageView = new ImageView(resetImage);
-        resetImageView.setFitWidth(50); // Устанавливаем ширину кнопки
+
+        resetImageView.setFitWidth(100); // Устанавливаем ширину кнопки
         resetImageView.setFitHeight(50); // Устанавливаем высоту кнопки
-        resetImageView.setLayoutX(380); // Устанавливаем положение по оси X
+        resetImageView.setLayoutX(350); // Устанавливаем положение по оси X
         resetImageView.setLayoutY(250); // Устанавливаем положение по оси Y
         resetImageView.setOnMouseClicked(event -> resetGame()); // Обработчик события для кнопки
         resetImageView.setVisible(false); // Начально кнопка не видна
@@ -105,8 +119,7 @@ public class Main extends Application {
         }
 
         // Добавляем текст для отображения очков и здоровья
-        Text scoreText = new Text(10, 20, "Score: 0");
-        Text healthText = new Text(10, 40, "Health: 3");
+
         root.getChildren().addAll(scoreText, healthText);
 
         scene.setOnKeyPressed(event -> {
@@ -129,7 +142,7 @@ public class Main extends Application {
             }
         });
 
-        AnimationTimer timer = new AnimationTimer() {
+        timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
                 double x = characterView.getLayoutX();
@@ -222,7 +235,49 @@ public class Main extends Application {
     }
 
     private void resetGame() {
+        // Возвращаем персонажа на начальную позицию
+        characterView.setLayoutX(100);
+        characterView.setLayoutY(530);
+
+        // Инициализируем списки заново
+        platforms = new ArrayList<>();
+        enemies = new ArrayList<>();
+        items = new ArrayList<>();
+
+        // Добавляем платформы
+        platforms.add(new Platform(200, 450, 100, 20));
+        platforms.add(new Platform(400, 350, 100, 20));
+        platforms.add(new Platform(600, 250, 100, 20));
+
+
+        // Добавляем врагов
+        enemies.add(new Enemy(300, 420, 90, 70, -2)); // Враг движется влево
+        enemies.add(new Enemy(500, 320, 90, 70, 2)); // Враг движется вправо
+
+
+        // Добавляем предметы (сундуки)
+        items.add(new Item(350, 400, 50, 50));
+        items.add(new Item(550, 300, 50, 50));
+
+
+
+        // Сбрасываем значения переменных, связанных с игровым процессом
+        score = 0;
+        health = 3;
+
+        // Обновляем отображение счета и здоровья
+        scoreText.setText("Score: " + score);
+        healthText.setText("Health: " + health);
+
+        // Скрываем изображение "Game Over" и кнопку "Reset"
+        gameOverImageView.setVisible(false);
+        resetImageView.setVisible(false);
+
+        // Запускаем игру заново
+        timer.start();
     }
+
+
 
     public static void main(String[] args) {
 
