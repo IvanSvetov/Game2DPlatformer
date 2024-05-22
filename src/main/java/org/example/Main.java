@@ -50,7 +50,12 @@ public class Main extends Application {
         backgroundView.setFitHeight(WINDOW_HEIGHT + 100);
         root.getChildren().add(backgroundView);
 
-
+        Image gameOverImage = new Image(getClass().getResourceAsStream("/gameover.png"));
+        ImageView gameOverImageView = new ImageView(gameOverImage);
+        gameOverImageView.setLayoutX(230);
+        gameOverImageView.setLayoutY(-20);
+        gameOverImageView.setVisible(false); // Начально изображение скрыто
+        root.getChildren().add(gameOverImageView);
 
         Image characterImage = new Image(getClass().getResourceAsStream("/character.png"));
         ImageView characterView = new ImageView(characterImage);
@@ -179,6 +184,7 @@ public class Main extends Application {
                             if (health <= 0) {
                                 stop();
                                 System.out.println("Game Over!");
+                                gameOverImageView.setVisible(true);
                             }
                         }
                     }
