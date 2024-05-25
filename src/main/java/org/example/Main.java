@@ -9,9 +9,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+
+import java.util.*;
 
 public class Main extends Application {
 
@@ -21,13 +20,12 @@ public class Main extends Application {
     private static final double JUMP_FORCE = -13;
     private static final double MOVE_SPEED = 5;
     private static final double GROUND_LEVEL = 600;
+    private static final long INVINCIBILITY_DURATION = 2000; // 2 seconds
 
-    private boolean isLeftPressed = false;
-    private boolean isRightPressed = false;
-    private boolean isUpPressed = false;
-
+    private Map<KeyCode, Boolean> keys = new HashMap<>();
     private double velocityY = 0;
     private boolean canJump = true;
+    private long invincibilityTimer = 0;
 
     Image backgroundImage = new Image(getClass().getResourceAsStream("/background.png"));
     ImageView backgroundView = new ImageView(backgroundImage);
@@ -46,7 +44,7 @@ public class Main extends Application {
 
     private AnimationTimer timer;
 
-    private List<ImageView> platforms = new ArrayList<>();
+    private List<Platform> platforms = new ArrayList<>();
     private List<Enemy> enemies = new ArrayList<>();
     private List<Item> items = new ArrayList<>();
 
@@ -65,13 +63,13 @@ public class Main extends Application {
 
         setupGame(root);
 
-        scene.setOnKeyPressed(event -> handleKeyPress(event.getCode(), true));
-        scene.setOnKeyReleased(event -> handleKeyPress(event.getCode(), false));
+        scene.setOnKeyPressed(event -> keys.put(event.getCode(), true));
+        scene.setOnKeyReleased(event -> keys.put(event.getCode(), false));
 
         timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                updateGame(root);
+                updateGame(root, now);
             }
         };
         timer.start();
@@ -115,11 +113,11 @@ public class Main extends Application {
 
     private void setupPlatforms(Pane root) {
         platforms.clear();
-        platforms.add(new Platform(200, 450, 100, 20));
-        platforms.add(new Platform(400, 350, 100, 20));
-        platforms.add(new Platform(600, 250, 100, 20));
+        platforms.add(new Platform(200, 450, 100, 50));
+        platforms.add(new Platform(400, 350, 100, 50));
+        platforms.add(new Platform(600, 250, 100, 50));
 
-        for (ImageView platform : platforms) {
+        for (Platform platform : platforms) {
             root.getChildren().add(platform);
         }
     }
@@ -144,25 +142,17 @@ public class Main extends Application {
         }
     }
 
-    private void handleKeyPress(KeyCode code, boolean isPressed) {
-        switch (code) {
-            case LEFT -> isLeftPressed = isPressed;
-            case RIGHT -> isRightPressed = isPressed;
-            case UP -> isUpPressed = isPressed;
-        }
-    }
-
-    private void updateGame(Pane root) {
+    private void updateGame(Pane root, long now) {
         double x = characterView.getLayoutX();
         double y = characterView.getLayoutY();
 
-        if (isLeftPressed) {
+        if (isPressed(KeyCode.LEFT)) {
             characterView.setLayoutX(x - MOVE_SPEED);
         }
-        if (isRightPressed) {
+        if (isPressed(KeyCode.RIGHT)) {
             characterView.setLayoutX(x + MOVE_SPEED);
         }
-        if (isUpPressed && canJump) {
+        if (isPressed(KeyCode.UP) && canJump) {
             velocityY = JUMP_FORCE;
             canJump = false;
         }
@@ -177,12 +167,12 @@ public class Main extends Application {
         }
 
         boolean onPlatform = false;
-        for (ImageView platform : platforms) {
+        for (Platform platform : platforms) {
             if (characterView.getBoundsInParent().intersects(platform.getBoundsInParent())) {
                 double characterBottom = characterView.getBoundsInParent().getMaxY();
                 double platformTop = platform.getBoundsInParent().getMinY();
-                if (characterBottom <= platformTop + 10 && characterBottom >= platformTop - 10) {
-                    characterView.setLayoutY(platform.getLayoutY() - characterView.getFitHeight() + 5);
+                if (characterBottom <= platformTop + 15 && characterBottom >= platformTop - 15) {
+                    characterView.setLayoutY(platform.getLayoutY() - characterView.getFitHeight() + 10);
                     velocityY = 0;
                     canJump = true;
                     onPlatform = true;
@@ -191,6 +181,10 @@ public class Main extends Application {
         }
         if (!onPlatform && y < GROUND_LEVEL - characterView.getFitHeight()) {
             canJump = false;
+        }
+
+        if (invincibilityTimer > 0) {
+            invincibilityTimer -= 16; // Assuming updateGame is called every ~16ms
         }
 
         updateEnemies(root);
@@ -209,6 +203,10 @@ public class Main extends Application {
     }
 
     private void checkEnemyCollisions(Pane root) {
+        if (invincibilityTimer > 0) {
+            return; // Skip collision check if player is invincible
+        }
+
         Iterator<Enemy> enemyIterator = enemies.iterator();
         while (enemyIterator.hasNext()) {
             Enemy enemy = enemyIterator.next();
@@ -223,11 +221,9 @@ public class Main extends Application {
                 } else {
                     health -= 1;
                     healthText.setText("Health: " + health);
+                    invincibilityTimer = INVINCIBILITY_DURATION;
                     if (health <= 0) {
-                        gameOverImageView.setVisible(true);
-                        resetImageView.setVisible(true);
-                        timer.stop();
-                        System.out.println("Game Over!");
+                        gameOver();
                     }
                 }
             }
@@ -247,28 +243,25 @@ public class Main extends Application {
         }
     }
 
+    private void gameOver() {
+        gameOverImageView.setVisible(true);
+        resetImageView.setVisible(true);
+        timer.stop();
+        System.out.println("Game Over!");
+    }
+
     private void resetGame(Pane root) {
-        root.getChildren().removeAll(platforms);
-        root.getChildren().removeAll(enemies);
-        root.getChildren().removeAll(items);
-
-        characterView.setLayoutX(100);
-        characterView.setLayoutY(GROUND_LEVEL - characterView.getFitHeight());
-
-        setupPlatforms(root);
-        setupEnemies(root);
-        setupItems(root);
-
-        score = 0;
         health = 3;
-
-        scoreText.setText("Score: " + score);
+        score = 0;
         healthText.setText("Health: " + health);
-
-        gameOverImageView.setVisible(false);
-        resetImageView.setVisible(false);
-
+        scoreText.setText("Score: " + score);
+        invincibilityTimer = 0;
+        setupGame(root);
         timer.start();
+    }
+
+    private boolean isPressed(KeyCode key) {
+        return keys.getOrDefault(key, false);
     }
 
     public static void main(String[] args) {
